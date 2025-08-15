@@ -1,0 +1,21 @@
+# Core scientific computing
+numpy==1.23.3
+pandas==1.4.4
+scipy==1.9.1
+
+# Visualization
+matplotlib==3.5.2
+seaborn==0.11.2
+
+# Machine Learning
+scikit-learn==1.0.2
+
+# Statistics
+statsmodels==0.13.5
+
+# Excel support
+openpyxl==3.0.9
+xlsxwriter==3.2.2
+
+# Additional packages
+SkillMetrics==1.1.7  # For Taylor diagrams 

@@ -1,0 +1,146 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "groundwater-daily-estimation-tsd"
+version = "0.1.0"
+description = "A Python package for estimating daily groundwater levels using trend-seasonal-decomposition methodology"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Sebastian Gutierrez Pacheco", email = "sebastian.gutierrez-pacheco.1@ulaval.ca"}
+]
+maintainers = [
+    {name = "Sebastian Gutierrez Pacheco", email = "sebastian.gutierrez-pacheco.1@ulaval.ca"}
+]
+keywords = [
+    "groundwater", "hydrology", "water-level", "estimation", 
+    "trend-seasonal-decomposition", "TSD", "time-series", "analysis"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Topic :: Scientific/Engineering :: Environmental Science",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.23.0",
+    "pandas>=1.4.0",
+    "scipy>=1.9.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "scikit-learn>=1.0.0",
+    "statsmodels>=0.13.0",
+    "openpyxl>=3.0.0",
+    "xlsxwriter>=3.2.0",
+    "SkillMetrics>=1.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=21.0",
+    "flake8>=3.8",
+    "mypy>=0.900",
+]
+test = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+]
+docs = [
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/groundwater-daily-estimation-tsd"
+Documentation = "https://groundwater-daily-estimation-tsd.readthedocs.io/"
+Repository = "https://github.com/yourusername/groundwater-daily-estimation-tsd"
+"Bug Tracker" = "https://github.com/yourusername/groundwater-daily-estimation-tsd/issues"
+
+[project.scripts]
+groundwater-estimation = "groundwater_estimation.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+groundwater_estimation = [
+    "data/sample_data/*",
+    "data/sample_data/*.sqlite",
+    "data/sample_data/*.csv",
+    "data/sample_data/*.xlsx",
+]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*.pyc", "*.pyo", "__pycache__", ".DS_Store", ".git*", "*.swp", "*.swo", "*~"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/env/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+] 

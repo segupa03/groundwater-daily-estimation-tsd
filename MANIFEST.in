@@ -1,0 +1,36 @@
+# Include README and documentation
+include README.md
+include LICENSE
+include requirements.txt
+include tsd_env.yml
+include setup_instructions.md
+include PROJECT_STATUS.md
+
+# Include source code
+recursive-include src *.py
+
+# Include data files
+recursive-include data *.sqlite
+recursive-include data *.csv
+recursive-include data *.xlsx
+recursive-include data *.txt
+
+# Include examples
+recursive-include examples *.py
+
+# Include tests
+recursive-include tests *.py
+
+# Include documentation
+recursive-include docs *.pdf
+recursive-include docs *.md
+
+# Exclude unnecessary files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude .git*
+global-exclude *.swp
+global-exclude *.swo
+global-exclude *~ 
