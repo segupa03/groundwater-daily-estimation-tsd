@@ -105,7 +105,7 @@ class DataLoader:
             ORDER BY Jour
             """
             df = pd.read_sql_query(query, conn)
-
+            
             # Detect column names automatically
             column_mapping = self._detect_column_names(df)         
             
@@ -123,7 +123,7 @@ class DataLoader:
             first_table = table_names[0] if table_names else None
             if first_table:
                 print(f"Loading first available table: {first_table}")
-                df = pd.read_sql_query(f"SELECT * FROM {first_table}", conn)
+            df = pd.read_sql_query(f"SELECT * FROM {first_table}", conn)
             else:
                 raise ValueError("No tables found in database")
         
@@ -307,12 +307,12 @@ class DataLoader:
             if date_col is None:
                 raise ValueError("No date column found. Expected one of: Date, Jour, Day, Time")
             
-            if start_date:
-                start_dt = pd.to_datetime(start_date)
+                if start_date:
+                    start_dt = pd.to_datetime(start_date)
                 well_data = well_data[well_data[date_col] >= start_dt]
                 
-            if end_date:
-                end_dt = pd.to_datetime(end_date)
+                if end_date:
+                    end_dt = pd.to_datetime(end_date)
                 well_data = well_data[well_data[date_col] <= end_dt]
 
         
@@ -474,7 +474,7 @@ class SQLiteLoader(DataLoader):
         """
         
         try:
-            df = pd.read_sql_query(query, conn)
+        df = pd.read_sql_query(query, conn)
         except Exception as e:
             print(f"Error reading coordinates from table '{coords_table}': {e}")
             print(f"Available tables: {self._get_table_names()}")
@@ -542,7 +542,7 @@ class CSVLoader(DataLoader):
     def __init__(self, csv_path: str):
         super().__init__(csv_path)
         if self.data_type != 'csv':
-            raise ValueError(f"Expected CSV file, got {self.data_type}")
+            raise ValueError(f"Expected CSV file, got {self.data_type}") 
 
 
 # Convenience function for creating loaders with custom table names

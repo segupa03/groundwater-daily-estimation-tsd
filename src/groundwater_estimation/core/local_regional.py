@@ -30,9 +30,9 @@ class LocalRegionalDecomposition:
             Data loader instance for accessing data
         """
         self.data_loader = data_loader
-    
+        
     def decompose_water_levels(self, well_data: pd.DataFrame, 
-                             reference_data: pd.DataFrame,
+                              reference_data: pd.DataFrame,
                              manual_dates: Optional[List[datetime]] = None,
                              mode: str = "auto") -> Dict[str, pd.DataFrame]:
         """
@@ -368,7 +368,7 @@ class LocalRegionalDecomposition:
         return biweekly_dates
     
     def _get_manual_measurements(self, well_data: pd.DataFrame, 
-                               manual_dates: List[datetime]) -> pd.DataFrame:
+                                manual_dates: List[datetime]) -> pd.DataFrame:
         """
         Get manual measurements for specified dates.
         
@@ -767,8 +767,8 @@ def decompose_water_levels(well_data: pd.DataFrame,
 
 def estimate_daily_values(target_well: str, reference_well: str,
                          treatment_unit: int, year: int,
-                         data_loader,
-                         start_date: Optional[str] = None,
+                        data_loader,
+                        start_date: Optional[str] = None,
                          end_date: Optional[str] = None,
                          mode: str = "auto",
                          manual_measurements: Optional[List[Tuple[datetime, float]]] = None) -> pd.DataFrame:
