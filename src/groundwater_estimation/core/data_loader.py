@@ -124,8 +124,7 @@ class DataLoader:
             if first_table:
                 print(f"Loading first available table: {first_table}")
             df = pd.read_sql_query(f"SELECT * FROM {first_table}", conn)
-            else:
-                raise ValueError("No tables found in database")
+
         
         conn.close()
         return df
@@ -474,7 +473,7 @@ class SQLiteLoader(DataLoader):
         """
         
         try:
-        df = pd.read_sql_query(query, conn)
+            df = pd.read_sql_query(query, conn)
         except Exception as e:
             print(f"Error reading coordinates from table '{coords_table}': {e}")
             print(f"Available tables: {self._get_table_names()}")
