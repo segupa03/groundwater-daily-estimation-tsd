@@ -57,6 +57,11 @@ class LocalRegionalDecomposition:
         # Determine mode automatically if not specified
         if mode == "auto":
             mode = self._detect_mode(well_data, reference_data)
+
+        if mode == "estimation":
+            date_col = self._get_date_column(well_data)
+            water_level_col = self._get_water_level_column(well_data)
+            manual_dates = well_data[well_data[water_level_col].notna()][date_col].values
         
         # Calculate reference well trend first
         reference_trend = self._calculate_trend_component(reference_data, manual_dates)
@@ -149,7 +154,6 @@ class LocalRegionalDecomposition:
         if manual_dates is None:
             # Generate bi-weekly dates
             manual_dates = self._generate_biweekly_dates(well_data)
-        
         # Get manual measurements
         manual_measurements = self._get_manual_measurements(well_data, manual_dates)
         # Get date column
@@ -240,11 +244,13 @@ class LocalRegionalDecomposition:
         
         # Calculate regional pattern from reference well fluctuations
         if len(reference_data) > 0 and water_level_col in reference_data.columns and 'trend' in reference_trend.columns:
+            print(f"[local_regional.py] _calculate_regional_fluctuations: estimating regional fluctuations")
             # Regional fluctuations = reference_observed - reference_trend
             reference_fluctuations = reference_data[water_level_col].values - reference_trend['trend'].values
             
             # Interpolate regional fluctuations to target well dates
             # We need to align the reference fluctuations with target well dates
+            # TODO: alert if dates are not aligned and quit calculation.
             print("length of reference fluctuations: ", len(reference_fluctuations))
             print("length of target trend: ", len(target_trend))
             if len(reference_fluctuations) == len(target_trend):
@@ -254,7 +260,7 @@ class LocalRegionalDecomposition:
                     'regional_fluctuation': reference_fluctuations
                 })                
             
-            # This is not expected to happen            
+            # This is not expected to happen      TODO !!!!!!!!!       
             else:
                 print("Reference fluctuations and regional df have different lengths")
                 # Different lengths, need interpolation
@@ -324,23 +330,23 @@ class LocalRegionalDecomposition:
         
         # Combine components based on mode
         if 'trend' in target_trend.columns:
-            # Start with the trend component
-            combined_df['estimated'] = target_trend['trend']
+            # Start with the trend component (use .values to avoid index alignment issues)
+            combined_df['estimated'] = target_trend['trend'].values
             
             if mode == "calibration":
                 # Mode calibration: Trend + Local fluctuations
                 # Use local fluctuations from the target well itself
                 if 'local_fluctuation' in local_fluctuations.columns:
-                    combined_df['estimated'] += local_fluctuations['local_fluctuation']
+                    combined_df['estimated'] += local_fluctuations['local_fluctuation'].values
                 else:
                     # Fallback: use regional fluctuations if local not available
-                    combined_df['estimated'] += regional_fluctuations['regional_fluctuation']
+                    combined_df['estimated'] += regional_fluctuations['regional_fluctuation'].values
                     
             elif mode == "estimation":
                 # Mode estimation: Trend + Regional fluctuations
                 # Use regional fluctuations from the reference well
                 if 'regional_fluctuation' in regional_fluctuations.columns:
-                    combined_df['estimated'] += regional_fluctuations['regional_fluctuation']
+                    combined_df['estimated'] += regional_fluctuations['regional_fluctuation'].values
                 else:
                     # Fallback: no fluctuations if regional not available
                     pass
@@ -362,6 +368,58 @@ class LocalRegionalDecomposition:
             combined_df['estimated'] = 0.0
         
         return combined_df
+    
+    def _align_target_with_reference_dates(self, target_data: pd.DataFrame, 
+                                          reference_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Align target well data with reference well dates in estimation mode.
+        
+        This ensures that the target well has the same dates as the reference well,
+        but only with values where actual measurements exist.
+        
+        Parameters:
+        -----------
+        target_data : pd.DataFrame
+            Target well data (with sparse measurements)
+        reference_data : pd.DataFrame
+            Reference well data (with daily measurements)
+            
+        Returns:
+        --------
+        pd.DataFrame
+            Target well data aligned with reference well dates
+        """
+        # Get column names
+        date_col = self._get_date_column(reference_data)
+        water_level_col = self._get_water_level_column(reference_data)
+        
+        # Create a DataFrame with all reference dates
+        aligned_target = pd.DataFrame({
+            date_col: reference_data[date_col],
+            water_level_col: np.nan,  # Initialize with NaN
+            'Well_ID': target_data['Well_ID'].iloc[0] if len(target_data) > 0 else 'Unknown',
+            'Basin': target_data['Basin'].iloc[0] if len(target_data) > 0 else 1,
+            'X': target_data['X'].iloc[0] if len(target_data) > 0 else 0,
+            'Y': target_data['Y'].iloc[0] if len(target_data) > 0 else 0
+        })
+        
+        # Add Well_type if it exists
+        if 'Well_type' in target_data.columns:
+            aligned_target['Well_type'] = target_data['Well_type'].iloc[0] if len(target_data) > 0 else 'Unknown'
+        
+        # Fill in actual measurements where they exist
+        if len(target_data) > 0:
+            # Convert dates to ensure compatibility
+            target_dates = pd.to_datetime(target_data[date_col])
+            ref_dates = pd.to_datetime(reference_data[date_col])
+            
+            # Find matching dates and fill values
+            for idx, target_date in enumerate(target_dates):
+                # Find closest reference date
+                closest_idx = (ref_dates - target_date).abs().idxmin()
+                aligned_target.loc[closest_idx, water_level_col] = target_data.iloc[idx][water_level_col]
+        
+        return aligned_target
     
     def _generate_biweekly_dates(self, well_data: pd.DataFrame) -> List[datetime]:
         """
@@ -418,7 +476,17 @@ class LocalRegionalDecomposition:
         well_data = well_data.reset_index(drop=True).copy()
         date_col = self._get_date_column(well_data)
         water_level_col = self._get_water_level_column(well_data)
+       
+        # First, try to extract non-NaN values directly (for aligned data)
+        non_nan_mask = well_data[water_level_col].notna()
+        non_nan_mask = well_data[date_col].isin(manual_dates) & well_data[water_level_col].notna()
+        if non_nan_mask.sum() > 0:
+            # Extract actual measurements (non-NaN values)
+            actual_measurements = well_data[non_nan_mask].copy()
+            print(f"Found {len(actual_measurements)} actual measurements in aligned data")
+            return actual_measurements
         
+        # Fallback to original logic for non-aligned data
         if date_col == 'Date':
             # Find measurements closest to manual dates
             manual_measurements = []
@@ -592,9 +660,14 @@ class LocalRegionalDecomposition:
             end_date=end_date
         )
         
+        # In estimation mode, ensure target well has same dates as reference well
+        if mode == "estimation" or (mode == "auto" and len(target_data) < len(reference_data) * 0.7):
+            target_data = self._align_target_with_reference_dates(target_data, reference_data)
+        
         # Process manual measurements if provided
         manual_dates = None
-        if manual_measurements is not None:
+        if manual_measurements is not None and mode == "estimation":
+            print(f"[local_regional.py] estimate_daily_values: Manual measurements provided")
             date_col = self._get_date_column(target_data)
             # Extract dates and create a DataFrame with manual measurements
             dates, values = zip(*manual_measurements)
@@ -610,13 +683,18 @@ class LocalRegionalDecomposition:
             if mode == "auto":
                 mode = "estimation"
         
+        elif mode == "estimation":
+            print("Manual measurement from target well")
+            date_col = self._get_date_column(target_data)
+            manual_dates = target_data[date_col].values
+        
         # Perform decomposition
         results = self.decompose_water_levels(
             target_data, reference_data, 
             manual_dates=manual_dates,
             mode=mode
         )
-        
+                
         return results['estimated']
     
     def _process_manual_measurements(self, manual_measurements: List[Tuple[datetime, float]], 
