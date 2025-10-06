@@ -81,9 +81,9 @@ class LocalRegionalDecomposition:
         '''
         local_fluctuations = self._calculate_local_fluctuations(well_data, target_trend)
         
-        # Combine components
+        # Combine components based on mode
         estimated_values = self._combine_components(
-            well_data, target_trend, regional_fluctuations
+            well_data, target_trend, regional_fluctuations, local_fluctuations, mode
         )
         
         return {
@@ -296,7 +296,9 @@ class LocalRegionalDecomposition:
     
     def _combine_components(self, well_data: pd.DataFrame, 
                           target_trend: pd.DataFrame,
-                          regional_fluctuations: pd.DataFrame) -> pd.DataFrame:
+                          regional_fluctuations: pd.DataFrame,
+                          local_fluctuations: pd.DataFrame,
+                          mode: str) -> pd.DataFrame:
         """
         Combine all components to get final estimation.
         
@@ -308,6 +310,8 @@ class LocalRegionalDecomposition:
             Trend component
         regional_fluctuations : pd.DataFrame
             Regional fluctuations
+        local_fluctuations : pd.DataFrame
+            Local fluctuations
         mode : str
             "calibration" or "estimation"
             
@@ -318,15 +322,42 @@ class LocalRegionalDecomposition:
         """
         combined_df = well_data.copy()
         
-        # TODO: check if better to merge 
-        # target_trend and regional_fluctuations.
-        # This is not the case for the current implementation.
-        # Marge using the date column could be a solution.
-
         # Combine components based on mode
         if 'trend' in target_trend.columns:
+            # Start with the trend component
             combined_df['estimated'] = target_trend['trend']
-            combined_df['estimated'] += regional_fluctuations['regional_fluctuation']
+            
+            if mode == "calibration":
+                # Mode calibration: Trend + Local fluctuations
+                # Use local fluctuations from the target well itself
+                if 'local_fluctuation' in local_fluctuations.columns:
+                    combined_df['estimated'] += local_fluctuations['local_fluctuation']
+                else:
+                    # Fallback: use regional fluctuations if local not available
+                    combined_df['estimated'] += regional_fluctuations['regional_fluctuation']
+                    
+            elif mode == "estimation":
+                # Mode estimation: Trend + Regional fluctuations
+                # Use regional fluctuations from the reference well
+                if 'regional_fluctuation' in regional_fluctuations.columns:
+                    combined_df['estimated'] += regional_fluctuations['regional_fluctuation']
+                else:
+                    # Fallback: no fluctuations if regional not available
+                    pass
+            else:
+                # Auto mode: detect based on data density
+                # If target well has many observations, use local fluctuations
+                # If target well has few observations, use regional fluctuations
+                if len(well_data) > len(regional_fluctuations) * 0.7:
+                    # Many observations -> calibration mode
+                    if 'local_fluctuation' in local_fluctuations.columns:
+                        combined_df['estimated'] += local_fluctuations['local_fluctuation']
+                    else:
+                        combined_df['estimated'] += regional_fluctuations['regional_fluctuation']
+                else:
+                    # Few observations -> estimation mode
+                    if 'regional_fluctuation' in regional_fluctuations.columns:
+                        combined_df['estimated'] += regional_fluctuations['regional_fluctuation']
         else:
             combined_df['estimated'] = 0.0
         
