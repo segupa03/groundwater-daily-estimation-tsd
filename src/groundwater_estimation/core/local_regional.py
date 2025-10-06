@@ -63,6 +63,9 @@ class LocalRegionalDecomposition:
             water_level_col = self._get_water_level_column(well_data)
             manual_dates = well_data[well_data[water_level_col].notna()][date_col].values
         
+        if mode == "calibration":
+            manual_dates = None
+        
         # Calculate reference well trend first
         reference_trend = self._calculate_trend_component(reference_data, manual_dates)
         
@@ -88,7 +91,7 @@ class LocalRegionalDecomposition:
         
         # Combine components based on mode
         estimated_values = self._combine_components(
-            well_data, target_trend, regional_fluctuations, local_fluctuations, mode
+            well_data, target_trend, regional_fluctuations, regional_fluctuations, mode
         )
         
         return {
@@ -154,6 +157,7 @@ class LocalRegionalDecomposition:
         if manual_dates is None:
             # Generate bi-weekly dates
             manual_dates = self._generate_biweekly_dates(well_data)
+        
         # Get manual measurements
         manual_measurements = self._get_manual_measurements(well_data, manual_dates)
         # Get date column
@@ -338,6 +342,7 @@ class LocalRegionalDecomposition:
                 # Use local fluctuations from the target well itself
                 if 'local_fluctuation' in local_fluctuations.columns:
                     combined_df['estimated'] += local_fluctuations['local_fluctuation'].values
+                    print(f"local_fluctuations: {local_fluctuations.head(20)}")
                 else:
                     # Fallback: use regional fluctuations if local not available
                     combined_df['estimated'] += regional_fluctuations['regional_fluctuation'].values
